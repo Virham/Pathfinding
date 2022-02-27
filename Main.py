@@ -13,7 +13,6 @@ class Main:
         self.grid.Display()
         pygame.display.update()
 
-
     def Loop(self):
         while True:
             for event in pygame.event.get():
