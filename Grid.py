@@ -19,6 +19,7 @@ class Grid:
         self.activeCells = [False] * self.width * self.height
         self.start = None
         self.end = None
+        self.brushSize = 1
 
         # COLORS
         self.OUTLINE_COLOR = (0, 0, 0)
@@ -40,12 +41,21 @@ class Grid:
         yBound = self.startPos.y <= pos[1] <= self.startPos.y + self.height * self.pixelSize
         return xBound and yBound
 
+    def InCoordGrid(self, pos):
+        xBound = 0 <= pos[0] < self.width
+        yBound = 0 <= pos[1] < self.height
+        return xBound and yBound
+
     def CellClicked(self, startPos):
         return self.InGrid(startPos) and pygame.Rect(startPos, (self.pixelSize, self.pixelSize)).collidepoint(pygame.mouse.get_pos())
 
-    def PosToIndex(self, pos):
+    def PosToCoord(self, pos):
         x = (pos[0] - self.startPos[0]) // self.pixelSize
         y = (pos[1] - self.startPos[1]) // self.pixelSize
+        return int(x), int(y)
+
+    def PosToIndex(self, pos):
+        x, y = self.PosToCoord(pos)
         return int(x + y * self.width)
 
     def IndexToPos(self, index):
@@ -81,7 +91,6 @@ class Grid:
 
     def SpecialPositions(self, special, other):
         pos = self.PosToIndex(pygame.mouse.get_pos())
-        print(pos)
         self.activeCells[pos] = False
         if pos == other:
             return pos, None
@@ -90,11 +99,19 @@ class Grid:
         return pos, other
 
     def ActivateCells(self, state):
-        x, y = pygame.mouse.get_pos()
-        if not self.rect.collidepoint(x, y):
+        mouse_pos = pygame.mouse.get_pos()
+        x, y = self.PosToCoord(mouse_pos)
+        if not self.InGrid(mouse_pos):
             return
-        index = self.PosToIndex((x, y))
-        self.activeCells[index] = state
+
+        for i in range(self.brushSize):
+            for j in range(self.brushSize):
+                current_x = x + j
+                current_y = y + i
+                if not self.InCoordGrid((current_x, current_y)):
+                    continue
+                index = current_x + current_y * self.width
+                self.activeCells[index] = state
 
     '''
         DRAW FUNCTIONS
@@ -104,7 +121,7 @@ class Grid:
         active = self.ACellActive()
         if not active:
             return
-        pygame.draw.rect(self.win, self.HOVER_COLOR, (active, pygame.Vector2(self.pixelSize)))
+        pygame.draw.rect(self.win, self.HOVER_COLOR, (active, pygame.Vector2(self.pixelSize * self.brushSize)))
 
     def DrawActiveCells(self):
         for i in range(self.height):
@@ -144,6 +161,9 @@ class Grid:
             self.ActivateCells(True)
         if pygame.mouse.get_pressed()[2]:
             self.ActivateCells(False)
+            return
+        if event.type == pygame.MOUSEWHEEL:
+            self.brushSize = max(min(self.brushSize + event.y, 5), 1)
             return
 
     def Display(self):
