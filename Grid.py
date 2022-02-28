@@ -19,7 +19,11 @@ class Grid:
         self.activeCells = [False] * self.width * self.height
         self.start = None
         self.end = None
+
+        # BRUSH CONFIG
         self.brushSize = 1
+        self.minSize = 1
+        self.maxSize = 10
 
         # COLORS
         self.OUTLINE_COLOR = (0, 0, 0)
@@ -41,13 +45,29 @@ class Grid:
         yBound = self.startPos.y <= pos[1] <= self.startPos.y + self.height * self.pixelSize
         return xBound and yBound
 
+    def BrushInGrid(self, pos):
+        '''
+        checks all four corners to verify if any part is inside
+        :param pos:
+        :return bool:
+        '''
+
+        offset = self.brushSize * self.pixelSize
+        corner1 = self.InGrid(pos)
+        corner2 = self.InGrid((pos[0] + offset, pos[1]))
+        corner3 = self.InGrid((pos[0], pos[1] + offset))
+        corner4 = self.InGrid((pos[0] + offset, pos[1] + offset))
+        return corner1 or corner2 or corner3 or corner4
+
     def InCoordGrid(self, pos):
         xBound = 0 <= pos[0] < self.width
         yBound = 0 <= pos[1] < self.height
         return xBound and yBound
 
-    def CellClicked(self, startPos):
-        return self.InGrid(startPos) and pygame.Rect(startPos, (self.pixelSize, self.pixelSize)).collidepoint(pygame.mouse.get_pos())
+    def CellInBrush(self, startPos):
+        size = self.pixelSize * self.brushSize
+        x, y = pygame.mouse.get_pos()
+        return pygame.Rect((x - self.pixelSize, y - self.pixelSize), (size, size)).collidepoint(startPos)
 
     def PosToCoord(self, pos):
         x = (pos[0] - self.startPos[0]) // self.pixelSize
@@ -68,9 +88,10 @@ class Grid:
         yOffset = (pos[1] - self.startPos[1]) % self.pixelSize
         return pygame.Vector2(pos[0] - xOffset, pos[1] - yOffset)
 
-    def ACellActive(self):
+    def CellHover(self):
         x, y = pygame.mouse.get_pos()
-        if not self.rect.collidepoint(x, y):
+
+        if not self.BrushInGrid((x, y)):
             return
         return self.ClosestCell((x, y))
 
@@ -101,7 +122,7 @@ class Grid:
     def ActivateCells(self, state):
         mouse_pos = pygame.mouse.get_pos()
         x, y = self.PosToCoord(mouse_pos)
-        if not self.InGrid(mouse_pos):
+        if not self.BrushInGrid(mouse_pos):
             return
 
         for i in range(self.brushSize):
@@ -118,19 +139,24 @@ class Grid:
     '''
 
     def DrawCellHover(self):
-        active = self.ACellActive()
+        active = self.CellHover()
         if not active:
             return
-        pygame.draw.rect(self.win, self.HOVER_COLOR, (active, pygame.Vector2(self.pixelSize * self.brushSize)))
+
+        for i in range(self.brushSize):
+            for j in range(self.brushSize):
+                start_pos = active + pygame.Vector2(j, i) * self.pixelSize
+                if self.InGrid(start_pos + pygame.Vector2(self.pixelSize / 2)):
+                    pygame.draw.rect(self.win, self.HOVER_COLOR, (start_pos, pygame.Vector2(self.pixelSize)))
 
     def DrawActiveCells(self):
         for i in range(self.height):
             for j in range(self.width):
                 if self.activeCells[j + i * self.width]:
                     startPos = self.startPos + pygame.Vector2(j * self.pixelSize, i * self.pixelSize)
-                    color = self.ACTIVE_HOVER_COLOR if self.CellClicked(startPos) else self.ACTIVE_COLOR
-                    pygame.draw.rect(self.win, color, (startPos,
-                                                       (self.pixelSize, self.pixelSize)))
+                    color = self.ACTIVE_HOVER_COLOR if self.CellInBrush(startPos) else self.ACTIVE_COLOR
+
+                    pygame.draw.rect(self.win, color, (startPos, (self.pixelSize, self.pixelSize)))
 
     def DrawSpecial(self):
         if self.start is not None:
@@ -163,7 +189,7 @@ class Grid:
             self.ActivateCells(False)
             return
         if event.type == pygame.MOUSEWHEEL:
-            self.brushSize = max(min(self.brushSize + event.y, 5), 1)
+            self.brushSize = max(min(self.brushSize + event.y, self.maxSize), self.minSize)
             return
 
     def Display(self):
