@@ -66,8 +66,8 @@ class Grid:
 
     def CellInBrush(self, startPos):
         size = self.pixelSize * self.brushSize
-        x, y = pygame.mouse.get_pos()
-        return pygame.Rect((x - self.pixelSize, y - self.pixelSize), (size, size)).collidepoint(startPos)
+        pos = self.OffsetBrushToMiddle(pygame.mouse.get_pos())
+        return pygame.Rect((pos.x - self.pixelSize, pos.y - self.pixelSize), (size, size)).collidepoint(startPos)
 
     def PosToCoord(self, pos):
         x = (pos[0] - self.startPos[0]) // self.pixelSize
@@ -83,17 +83,21 @@ class Grid:
         y = (index - x) // self.width
         return self.startPos + pygame.Vector2(x * self.pixelSize, y * self.pixelSize)
 
+    def OffsetBrushToMiddle(self, startPos):
+        x = startPos[0] - (self.brushSize - 1) * self.pixelSize / 2
+        y = startPos[1] - (self.brushSize - 1) * self.pixelSize / 2
+        return pygame.Vector2(x, y)
+
     def ClosestCell(self, pos):
         xOffset = (pos[0] - self.startPos[0]) % self.pixelSize
         yOffset = (pos[1] - self.startPos[1]) % self.pixelSize
         return pygame.Vector2(pos[0] - xOffset, pos[1] - yOffset)
 
     def CellHover(self):
-        x, y = pygame.mouse.get_pos()
-
-        if not self.BrushInGrid((x, y)):
+        pos = self.OffsetBrushToMiddle(pygame.mouse.get_pos())
+        if not self.BrushInGrid(pos):
             return
-        return self.ClosestCell((x, y))
+        return self.ClosestCell(pos)
 
     '''
         FUNCTIONALITY FUNCTIONS
@@ -120,9 +124,9 @@ class Grid:
         return pos, other
 
     def ActivateCells(self, state):
-        mouse_pos = pygame.mouse.get_pos()
-        x, y = self.PosToCoord(mouse_pos)
-        if not self.BrushInGrid(mouse_pos):
+        pos = self.OffsetBrushToMiddle(pygame.mouse.get_pos())
+        x, y = self.PosToCoord(pos)
+        if not self.BrushInGrid(pos):
             return
 
         for i in range(self.brushSize):
