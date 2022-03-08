@@ -34,6 +34,7 @@ class Grid:
 
         self.START_COLOR = (0, 0, 255)
         self.END_COLOR = (0, 255, 0)
+        self.PATH_COLOR = (255, 0, 255)
 
     '''
         HELPER FUNCTIONS
@@ -72,6 +73,11 @@ class Grid:
         x = (pos[0] - self.startPos[0]) // self.pixelSize
         y = (pos[1] - self.startPos[1]) // self.pixelSize
         return int(x), int(y)
+
+    def coordToPos(self, coord):
+        x = coord[0] * self.pixelSize + self.startPos[0]
+        y = coord[1] * self.pixelSize + self.startPos[1]
+        return pygame.Vector2(x, y)
 
     def PosToIndex(self, pos):
         x, y = self.PosToCoord(pos)
@@ -180,6 +186,13 @@ class Grid:
             startPos = self.startPos + pygame.Vector2(0, i * self.pixelSize)
             endPos = startPos + pygame.Vector2(self.width * self.pixelSize, 0)
             pygame.draw.line(self.win, self.OUTLINE_COLOR, start_pos=startPos, end_pos=endPos, width=self.outlineW)
+
+    def drawPath(self, path):
+        if not path:
+            return
+        pygame.draw.rect(self.win, self.PATH_COLOR, (self.coordToPos(path.pos), pygame.Vector2(self.pixelSize)))
+        self.drawPath(path.parent)
+
 
     '''
         UPDATE FUNCTIONS

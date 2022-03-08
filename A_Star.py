@@ -20,10 +20,19 @@ class Node:
 
     def calculateHCost(self):
         offset = (self.pos - self.pathfinder.end)
-        return abs(offset.x + offset.y)
+        return abs(offset.x) + abs(offset.y)
 
     def getIndex(self):
         return int(self.pos.x + self.pos.y * self.pathfinder.width)
+
+    def __eq__(self, other):
+        return self.pos == other.pos
+
+    def __hash__(self):
+        return hash(str(self.pos))
+
+    def __repr__(self):
+        return f"pos: {self.pos} parent: {self.parent.pos if self.parent else None}"
 
 class AStar:
     def __init__(self, grid):
@@ -56,18 +65,17 @@ class AStar:
         x, y = current.pos
         neighbors = []
 
-        for i in range(-1, 2, 2):
-            for j in range(-1, 2, 2):
-                print(j, i)
-                pos = pygame.Vector2(x + j * 2 - 1, y + i)
-                if self.posInGrid(pos):
-                    index = int(pos.x + pos.y * self.width)
-                    print(index)
-                    if self.nodes[index]:
-                        neighbors.append(self.nodes[index])
-                        continue
-                    if self.cells[index]:
-                        neighbors.append(Node(pos, self, current))
+        for j, i in [(0, -1), (1, 0), (0, 1), (-1, 0)]:
+            pos = pygame.Vector2(x + j, y + i)
+            if self.posInGrid(pos):
+                index = int(pos.x + pos.y * self.width)
+                if self.nodes[index]:
+                    neighbors.append(self.nodes[index])
+                    continue
+                if not self.cells[index]:
+                    node = Node(pos, self, current)
+                    neighbors.append(node)
+                    self.saveNode(node)
 
         return neighbors
 
@@ -77,7 +85,6 @@ class AStar:
 
         start_node = Node(self.start, self, None)
         end_node = Node(self.end, self, None)
-        print(start_node.pos)
         self.saveNode(start_node)
         self.saveNode(end_node)
 
@@ -89,16 +96,15 @@ class AStar:
             open_nodes.remove(current)
             closed_nodes.add(current)
 
-            if current == end_node:
-                return current
 
             current_index = current.getIndex()
 
             for neighbor in self.getNeighbors(current):
-                print(not neighbor, neighbor in closed_nodes)
-                print(closed_nodes)
+                if neighbor == end_node:
+                    neighbor.parent = current
+                    return neighbor
+
                 if not neighbor or neighbor in closed_nodes:
-                    print(neighbor, "NEIGHBOR GONE")
                     continue
 
                 neighbor_index = neighbor.getIndex()
@@ -106,9 +112,8 @@ class AStar:
                 if t_score < self.f_cost[neighbor_index]:
                     self.f_cost[neighbor_index] = t_score
                     neighbor.parent = current
-                print("GOT HERE")
+
                 if neighbor not in open_nodes:
-                    print("ADDING", neighbor)
                     open_nodes.add(neighbor)
 
-        return "NO PATH"
+        return
