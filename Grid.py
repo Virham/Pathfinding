@@ -1,6 +1,5 @@
 import pygame
 
-
 class Grid:
     def __init__(self, main, startPos, width, height, pixelSize, outlineW):
         # POSITIONING
@@ -82,6 +81,9 @@ class Grid:
         x = index % self.width
         y = (index - x) // self.width
         return self.startPos + pygame.Vector2(x * self.pixelSize, y * self.pixelSize)
+
+    def IndexToCoord(self, index):
+        return pygame.Vector2(self.PosToCoord(self.IndexToPos(index)))
 
     def OffsetBrushToMiddle(self, startPos):
         x = startPos[0] - (self.brushSize - 1) * self.pixelSize / 2
