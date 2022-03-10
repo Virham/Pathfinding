@@ -19,7 +19,7 @@ class Node:
         return cost
 
     def calculateHCost(self):
-        offset = (self.pos - self.pathfinder.end)
+        offset = (self.pos - self.pathfinder.end_pos)
         return abs(offset.x) + abs(offset.y)
 
     def getIndex(self):
@@ -38,20 +38,34 @@ class AStar:
     def __init__(self, grid):
         self.grid = grid
 
+        if not grid.start or not grid.end:
+            print("RETURNING")
+            return
+
         self.cells = self.grid.activeCells
         self.width = self.grid.width
         self.height = self.grid.height
         self.size = self.width * self.height
 
-        self.end = None
-        self.start = None
-
         self.nodes = [None] * self.size
         self.f_cost = [math.inf] * self.size
+
+        self.end_pos = self.grid.IndexToCoord(self.grid.end)
+        self.end_node = self.CreateNode(self.end_pos)
+        self.start_pos = self.grid.IndexToCoord(self.grid.start)
+        self.start_node = self.CreateNode(self.start_pos)
+
+        self.open_nodes = {self.start_node}
+        self.closed_nodes = set()
 
     def getCurrent(self, open_nodes):
         getFCost = lambda x: self.f_cost[x.getIndex()]
         return min(open_nodes, key=getFCost)
+
+    def CreateNode(self, pos, parent=None):
+        node = Node(pos, self, parent)
+        self.saveNode(node)
+        return node
 
     def saveNode(self, node):
         index = node.getIndex()
@@ -73,47 +87,45 @@ class AStar:
                     neighbors.append(self.nodes[index])
                     continue
                 if not self.cells[index]:
-                    node = Node(pos, self, current)
+                    node = self.CreateNode(pos, current)
                     neighbors.append(node)
-                    self.saveNode(node)
 
         return neighbors
 
     def solve(self):
-        self.start = self.grid.IndexToCoord(self.grid.start)
-        self.end = self.grid.IndexToCoord(self.grid.end)
+        # no defined start or end
+        if not self.grid.start or not self.grid.end:
+            return
 
-        start_node = Node(self.start, self, None)
-        end_node = Node(self.end, self, None)
-        self.saveNode(start_node)
-        self.saveNode(end_node)
+        while len(self.open_nodes):
+            current_node = self.getCurrent(self.open_nodes)
+            current_index = current_node.getIndex()
 
-        open_nodes = {start_node}
-        closed_nodes = set()
+            # Current is now visited, can't be visited again
+            self.open_nodes.remove(current_node)
+            self.closed_nodes.add(current_node)
 
-        while len(open_nodes):
-            current = self.getCurrent(open_nodes)
-            open_nodes.remove(current)
-            closed_nodes.add(current)
-
-
-            current_index = current.getIndex()
-
-            for neighbor in self.getNeighbors(current):
-                if neighbor == end_node:
-                    neighbor.parent = current
+            for neighbor in self.getNeighbors(current_node):
+                # The neighbor is the end, stop and return path
+                if neighbor == self.end_node:
+                    neighbor.parent = current_node
                     return neighbor
 
-                if not neighbor or neighbor in closed_nodes:
+                # if the neighbor either outside grid or already been visited
+                if not neighbor or neighbor in self.closed_nodes:
                     continue
 
+                # check if length of path to neighbor through current is better than current path
                 neighbor_index = neighbor.getIndex()
                 t_score = self.f_cost[current_index] + 1
+
                 if t_score < self.f_cost[neighbor_index]:
                     self.f_cost[neighbor_index] = t_score
-                    neighbor.parent = current
+                    neighbor.parent = current_node
 
-                if neighbor not in open_nodes:
-                    open_nodes.add(neighbor)
+                # if the neighbor has never been visited, add to choice
+                if neighbor not in self.open_nodes:
+                    self.open_nodes.add(neighbor)
 
+        # There is no path
         return
