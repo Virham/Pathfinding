@@ -1,14 +1,15 @@
 import pygame
 
+
 class Grid:
-    def __init__(self, main, startPos, width, height, pixelSize, outlineW):
+    def __init__(self, main, start_pos, width, height, pixel_size, outline_width):
         # POSITIONING
-        self.startPos = startPos
+        self.start_pos = start_pos
         self.width = width
         self.height = height
-        self.pixelSize = pixelSize
-        self.outlineW = outlineW
-        self.rect = pygame.Rect(self.startPos, pygame.Vector2(self.width, self.height) * self.pixelSize)
+        self.pixel_size = pixel_size
+        self.outline_width = outline_width
+        self.rect = pygame.Rect(self.start_pos, pygame.Vector2(self.width, self.height) * self.pixel_size)
 
         # API
         self.main = main
@@ -36,94 +37,90 @@ class Grid:
         self.END_COLOR = (0, 255, 0)
         self.PATH_COLOR = (255, 0, 255)
 
-    '''
+    """
         HELPER FUNCTIONS
-    '''
+    """
 
-    def InGrid(self, pos):
-        xBound = self.startPos.x <= pos[0] <= self.startPos.x + self.width * self.pixelSize
-        yBound = self.startPos.y <= pos[1] <= self.startPos.y + self.height * self.pixelSize
-        return xBound and yBound
+    def in_grid(self, pos):
+        x_bound = self.start_pos.x <= pos[0] <= self.start_pos.x + self.width * self.pixel_size
+        y_bound = self.start_pos.y <= pos[1] <= self.start_pos.y + self.height * self.pixel_size
+        return x_bound and y_bound
 
-    def BrushInGrid(self, pos):
-        '''
-        checks all four corners to verify if any part is inside
-        :param pos:
-        :return bool:
-        '''
+    def brush_in_grid(self, pos):
+        # checks all four corners to verify if any part is inside
 
-        offset = self.brushSize * self.pixelSize
-        corner1 = self.InGrid(pos)
-        corner2 = self.InGrid((pos[0] + offset, pos[1]))
-        corner3 = self.InGrid((pos[0], pos[1] + offset))
-        corner4 = self.InGrid((pos[0] + offset, pos[1] + offset))
+        offset = self.brushSize * self.pixel_size
+        corner1 = self.in_grid(pos)
+        corner2 = self.in_grid((pos[0] + offset, pos[1]))
+        corner3 = self.in_grid((pos[0], pos[1] + offset))
+        corner4 = self.in_grid((pos[0] + offset, pos[1] + offset))
         return corner1 or corner2 or corner3 or corner4
 
-    def InCoordGrid(self, pos):
-        xBound = 0 <= pos[0] < self.width
-        yBound = 0 <= pos[1] < self.height
-        return xBound and yBound
+    def in_coord_grid(self, pos):
+        x_bound = 0 <= pos[0] < self.width
+        y_bound = 0 <= pos[1] < self.height
+        return x_bound and y_bound
 
-    def CellInBrush(self, startPos):
-        size = self.pixelSize * self.brushSize
-        pos = self.OffsetBrushToMiddle(pygame.mouse.get_pos())
-        return pygame.Rect((pos.x - self.pixelSize, pos.y - self.pixelSize), (size, size)).collidepoint(startPos)
+    def cell_in_brush(self, start_pos):
+        size = self.pixel_size * self.brushSize
+        pos = self.offset_brush_to_middle(pygame.mouse.get_pos())
+        return pygame.Rect((pos.x - self.pixel_size, pos.y - self.pixel_size), (size, size)).collidepoint(start_pos)
 
-    def PosToCoord(self, pos):
-        x = (pos[0] - self.startPos[0]) // self.pixelSize
-        y = (pos[1] - self.startPos[1]) // self.pixelSize
+    def pos_to_coord(self, pos):
+        x = (pos[0] - self.start_pos[0]) // self.pixel_size
+        y = (pos[1] - self.start_pos[1]) // self.pixel_size
         return int(x), int(y)
 
-    def coordToPos(self, coord):
-        x = coord[0] * self.pixelSize + self.startPos[0]
-        y = coord[1] * self.pixelSize + self.startPos[1]
+    def coord_to_pos(self, coord):
+        x = coord[0] * self.pixel_size + self.start_pos[0]
+        y = coord[1] * self.pixel_size + self.start_pos[1]
         return pygame.Vector2(x, y)
 
-    def PosToIndex(self, pos):
-        x, y = self.PosToCoord(pos)
+    def pos_to_index(self, pos):
+        x, y = self.pos_to_coord(pos)
         return int(x + y * self.width)
 
-    def IndexToPos(self, index):
+    def index_to_pos(self, index):
         x = index % self.width
         y = (index - x) // self.width
-        return self.startPos + pygame.Vector2(x * self.pixelSize, y * self.pixelSize)
+        return self.start_pos + pygame.Vector2(x * self.pixel_size, y * self.pixel_size)
 
-    def IndexToCoord(self, index):
-        return pygame.Vector2(self.PosToCoord(self.IndexToPos(index)))
+    def index_to_coord(self, index):
+        return pygame.Vector2(self.pos_to_coord(self.index_to_pos(index)))
 
-    def OffsetBrushToMiddle(self, startPos):
-        x = startPos[0] - (self.brushSize - 1) * self.pixelSize / 2
-        y = startPos[1] - (self.brushSize - 1) * self.pixelSize / 2
+    def offset_brush_to_middle(self, start_pos):
+        x = start_pos[0] - (self.brushSize - 1) * self.pixel_size / 2
+        y = start_pos[1] - (self.brushSize - 1) * self.pixel_size / 2
         return pygame.Vector2(x, y)
 
-    def ClosestCell(self, pos):
-        xOffset = (pos[0] - self.startPos[0]) % self.pixelSize
-        yOffset = (pos[1] - self.startPos[1]) % self.pixelSize
-        return pygame.Vector2(pos[0] - xOffset, pos[1] - yOffset)
+    def closet_cell(self, pos):
+        x_offset = (pos[0] - self.start_pos[0]) % self.pixel_size
+        y_offset = (pos[1] - self.start_pos[1]) % self.pixel_size
+        return pygame.Vector2(pos[0] - x_offset, pos[1] - y_offset)
 
-    def CellHover(self):
-        pos = self.OffsetBrushToMiddle(pygame.mouse.get_pos())
-        if not self.BrushInGrid(pos):
+    def cell_hover(self):
+        pos = self.offset_brush_to_middle(pygame.mouse.get_pos())
+        if not self.brush_in_grid(pos):
             return
-        return self.ClosestCell(pos)
+        return self.closet_cell(pos)
 
-    '''
+    """
         FUNCTIONALITY FUNCTIONS
-    '''
+    """
 
-    def KeyPressed(self):
+    def key_pressed(self):
         keys = pygame.key.get_pressed()
-        if not self.InGrid(pygame.mouse.get_pos()):
+        if not self.in_grid(pygame.mouse.get_pos()):
             return
 
         if keys[pygame.K_s]:
-            self.start, self.end = self.SpecialPositions(self.start, self.end)
+            self.start, self.end = self.special_positions(self.start, self.end)
 
         if keys[pygame.K_e]:
-            self.end, self.start = self.SpecialPositions(self.end, self.start)
+            self.end, self.start = self.special_positions(self.end, self.start)
 
-    def SpecialPositions(self, special, other):
-        pos = self.PosToIndex(pygame.mouse.get_pos())
+    def special_positions(self, special, other):
+        pos = self.pos_to_index(pygame.mouse.get_pos())
         self.activeCells[pos] = False
         if pos == other:
             return pos, None
@@ -131,90 +128,92 @@ class Grid:
             return None, other
         return pos, other
 
-    def ActivateCells(self, state):
-        pos = self.OffsetBrushToMiddle(pygame.mouse.get_pos())
-        x, y = self.PosToCoord(pos)
-        if not self.BrushInGrid(pos):
+    def activate_cells(self, state):
+        pos = self.offset_brush_to_middle(pygame.mouse.get_pos())
+        x, y = self.pos_to_coord(pos)
+        if not self.brush_in_grid(pos):
             return
 
         for i in range(self.brushSize):
             for j in range(self.brushSize):
                 current_x = x + j
                 current_y = y + i
-                if not self.InCoordGrid((current_x, current_y)):
+                if not self.in_coord_grid((current_x, current_y)):
                     continue
                 index = current_x + current_y * self.width
                 self.activeCells[index] = state
 
-    '''
+    """
         DRAW FUNCTIONS
-    '''
+    """
 
-    def DrawCellHover(self):
-        active = self.CellHover()
+    def draw_cell_hover(self):
+        active = self.cell_hover()
         if not active:
             return
 
         for i in range(self.brushSize):
             for j in range(self.brushSize):
-                start_pos = active + pygame.Vector2(j, i) * self.pixelSize
-                if self.InGrid(start_pos + pygame.Vector2(self.pixelSize / 2)):
-                    pygame.draw.rect(self.win, self.HOVER_COLOR, (start_pos, pygame.Vector2(self.pixelSize)))
+                start_pos = active + pygame.Vector2(j, i) * self.pixel_size
+                if self.in_grid(start_pos + pygame.Vector2(self.pixel_size / 2)):
+                    pygame.draw.rect(self.win, self.HOVER_COLOR, (start_pos, pygame.Vector2(self.pixel_size)))
 
-    def DrawActiveCells(self):
+    def draw_active_cells(self):
         for i in range(self.height):
             for j in range(self.width):
                 if self.activeCells[j + i * self.width]:
-                    startPos = self.startPos + pygame.Vector2(j * self.pixelSize, i * self.pixelSize)
-                    color = self.ACTIVE_HOVER_COLOR if self.CellInBrush(startPos) else self.ACTIVE_COLOR
+                    start_pos = self.start_pos + pygame.Vector2(j * self.pixel_size, i * self.pixel_size)
+                    color = self.ACTIVE_HOVER_COLOR if self.cell_in_brush(start_pos) else self.ACTIVE_COLOR
 
-                    pygame.draw.rect(self.win, color, (startPos, (self.pixelSize, self.pixelSize)))
+                    pygame.draw.rect(self.win, color, (start_pos, (self.pixel_size, self.pixel_size)))
 
-    def DrawSpecial(self):
+    def draw_special(self):
         if self.start is not None:
-            pygame.draw.rect(self.win, self.START_COLOR, (self.IndexToPos(self.start), pygame.Vector2(self.pixelSize)))
+            pygame.draw.rect(self.win, self.START_COLOR,
+                             (self.index_to_pos(self.start), pygame.Vector2(self.pixel_size)))
         if self.end is not None:
-            pygame.draw.rect(self.win, self.END_COLOR, (self.IndexToPos(self.end), pygame.Vector2(self.pixelSize)))
+            pygame.draw.rect(self.win, self.END_COLOR,
+                             (self.index_to_pos(self.end), pygame.Vector2(self.pixel_size)))
 
-    def DrawGrid(self):
+    def draw_grid(self):
         for i in range(self.width + 1):
-            startPos = self.startPos + pygame.Vector2(i * self.pixelSize, 0)
-            endPos = startPos + pygame.Vector2(0, self.height * self.pixelSize)
-            pygame.draw.line(self.win, self.OUTLINE_COLOR, start_pos=startPos, end_pos=endPos, width=self.outlineW)
+            start_pos = self.start_pos + pygame.Vector2(i * self.pixel_size, 0)
+            end_pos = start_pos + pygame.Vector2(0, self.height * self.pixel_size)
+            pygame.draw.line(self.win, self.OUTLINE_COLOR,
+                             start_pos=start_pos, end_pos=end_pos, width=self.outline_width)
 
         for i in range(self.height + 1):
-            startPos = self.startPos + pygame.Vector2(0, i * self.pixelSize)
-            endPos = startPos + pygame.Vector2(self.width * self.pixelSize, 0)
-            pygame.draw.line(self.win, self.OUTLINE_COLOR, start_pos=startPos, end_pos=endPos, width=self.outlineW)
+            start_pos = self.start_pos + pygame.Vector2(0, i * self.pixel_size)
+            end_pos = start_pos + pygame.Vector2(self.width * self.pixel_size, 0)
+            pygame.draw.line(self.win, self.OUTLINE_COLOR,
+                             start_pos=start_pos, end_pos=end_pos, width=self.outline_width)
 
-    def drawPath(self, path):
+    def draw_path(self, path):
         if not path:
             return
-        pygame.draw.rect(self.win, self.PATH_COLOR, (self.coordToPos(path.pos), pygame.Vector2(self.pixelSize)))
-        self.drawPath(path.parent)
+        pygame.draw.rect(self.win, self.PATH_COLOR, (self.coord_to_pos(path.pos), pygame.Vector2(self.pixel_size)))
+        self.draw_path(path.parent)
 
-
-    '''
+    """
         UPDATE FUNCTIONS
-    '''
+    """
 
-    def GridEvent(self, event):
+    def event_handler(self, event):
         if event.type == pygame.KEYDOWN:
-            self.KeyPressed()
+            self.key_pressed()
             return
         if pygame.mouse.get_pressed()[0]:
-            self.ActivateCells(True)
+            self.activate_cells(True)
         if pygame.mouse.get_pressed()[2]:
-            self.ActivateCells(False)
+            self.activate_cells(False)
             return
         if event.type == pygame.MOUSEWHEEL:
             self.brushSize = max(min(self.brushSize + event.y, self.maxSize), self.minSize)
             return
 
-    def Display(self):
+    def display(self):
         pygame.draw.rect(self.win, self.BACKGROUND_COLOR, self.rect)
-        self.DrawCellHover()
-        self.DrawActiveCells()
-        self.DrawSpecial()
-        self.DrawGrid()
-
+        self.draw_cell_hover()
+        self.draw_active_cells()
+        self.draw_special()
+        self.draw_grid()
