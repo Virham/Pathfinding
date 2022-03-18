@@ -37,7 +37,7 @@ class AStar:
     def __init__(self, grid):
         self.grid = grid
 
-        if not grid.start or not grid.end:
+        if grid.start is None or grid.end is None:
             print("RETURNING")
             return
 
@@ -49,9 +49,9 @@ class AStar:
         self.nodes = [None] * self.size
         self.f_cost = [math.inf] * self.size
 
-        self.end_pos = self.grid.IndexToCoord(self.grid.end)
+        self.end_pos = self.grid.index_to_coord(self.grid.end)
         self.end_node = self.create_node(self.end_pos)
-        self.start_pos = self.grid.IndexToCoord(self.grid.start)
+        self.start_pos = self.grid.index_to_coord(self.grid.start)
         self.start_node = self.create_node(self.start_pos)
 
         self.open_nodes = {self.start_node}
@@ -92,7 +92,7 @@ class AStar:
 
     def solve(self):
         # no defined start or end
-        if not self.grid.start or not self.grid.end:
+        if self.grid.start is None or self.grid.end is None:
             return
 
         while len(self.open_nodes):
@@ -107,7 +107,7 @@ class AStar:
                 # The neighbor is the end, stop and return path
                 if neighbor == self.end_node:
                     neighbor.parent = current_node
-                    return neighbor
+                    return neighbor, self.open_nodes, self.closed_nodes
 
                 # if the neighbor either outside grid or already been visited
                 if not neighbor or neighbor in self.closed_nodes:
@@ -124,6 +124,8 @@ class AStar:
                 # if the neighbor has never been visited, add to choice
                 if neighbor not in self.open_nodes:
                     self.open_nodes.add(neighbor)
+
+            # can visualize the changes
 
         # There is no path
         return

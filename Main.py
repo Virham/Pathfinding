@@ -12,20 +12,45 @@ class Main:
                          width=50, height=40,
                          pixel_size=16, outline_width=1)
         self.path = None
+        self.open = None
+        self.closed = None
+
+        self.visualizing = False
 
     def display(self):
         self.win.fill((225, 225, 225))
-        self.grid.display()
+        self.grid.draw_background()
 
         if self.path:
+            self.grid.draw_open_nodes(self.open)
+            self.grid.draw_closed_nodes(self.closed)
             self.grid.draw_path(self.path)
 
+        self.grid.display()
         pygame.display.update()
 
-    def print_path(self, node):
-        if node:
-            print(node)
-            self.print_path(node.parent)
+    def visualize_path(self, algorithm):
+        self.path = yield from algorithm.solve()
+
+    def calculate_path(self):
+        algorithm = AStar(grid=self.grid)
+        path = algorithm.solve()
+        if path:
+            self.path, self.open, self.closed = path
+            return
+
+        self.clear_path()
+
+    def clear_path(self):
+        self.path = None
+        self.open = None
+        self.closed = None
+
+    def grid_changed(self):
+        if self.visualizing:
+            self.calculate_path()
+            return
+        self.clear_path()
 
     def loop(self):
         while True:
@@ -39,9 +64,13 @@ class Main:
                     if keys[pygame.K_ESCAPE]:  # Resets program
                         return
                     if keys[pygame.K_f]:
-                        self.path = AStar(grid=self.grid).solve()
+                        self.visualizing = not self.visualizing
+                        self.grid_changed()
 
-                self.grid.event_handler(event)
+                state = self.grid.event_handler(event)
+                if state:
+                    self.grid_changed()
+
             self.display()
 
 

@@ -30,12 +30,14 @@ class Grid:
         self.BACKGROUND_COLOR = (255, 255, 255)
 
         self.HOVER_COLOR = (127, 127, 127)
-        self.ACTIVE_COLOR = (255, 0, 0)
-        self.ACTIVE_HOVER_COLOR = (191, 63, 63)
+        self.ACTIVE_COLOR = (0, 0, 0)
+        self.ACTIVE_HOVER_COLOR = (63, 63, 63)
 
         self.START_COLOR = (0, 0, 255)
         self.END_COLOR = (0, 255, 0)
         self.PATH_COLOR = (255, 0, 255)
+        self.OPEN_COLOR = (64, 255, 64)
+        self.CLOSED_COLOR = (255, 64, 64)
 
     """
         HELPER FUNCTIONS
@@ -194,6 +196,16 @@ class Grid:
         pygame.draw.rect(self.win, self.PATH_COLOR, (self.coord_to_pos(path.pos), pygame.Vector2(self.pixel_size)))
         self.draw_path(path.parent)
 
+    def draw_open_nodes(self, open_nodes):
+        for node in open_nodes:
+            pygame.draw.rect(self.win, self.OPEN_COLOR,
+                             (self.coord_to_pos(node.pos), pygame.Vector2(self.pixel_size)))
+
+    def draw_closed_nodes(self, closed_nodes):
+        for node in closed_nodes:
+            pygame.draw.rect(self.win, self.CLOSED_COLOR,
+                             (self.coord_to_pos(node.pos), pygame.Vector2(self.pixel_size)))
+
     """
         UPDATE FUNCTIONS
     """
@@ -201,18 +213,21 @@ class Grid:
     def event_handler(self, event):
         if event.type == pygame.KEYDOWN:
             self.key_pressed()
-            return
+            return "Changed"
         if pygame.mouse.get_pressed()[0]:
             self.activate_cells(True)
+            return "Changed"
         if pygame.mouse.get_pressed()[2]:
             self.activate_cells(False)
-            return
+            return "Changed"
         if event.type == pygame.MOUSEWHEEL:
             self.brushSize = max(min(self.brushSize + event.y, self.maxSize), self.minSize)
             return
 
-    def display(self):
+    def draw_background(self):
         pygame.draw.rect(self.win, self.BACKGROUND_COLOR, self.rect)
+
+    def display(self):
         self.draw_cell_hover()
         self.draw_active_cells()
         self.draw_special()
