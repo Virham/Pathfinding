@@ -51,7 +51,7 @@ class AStar:
 
         self.closed_colors = {}
         self.nodes = [None] * self.size
-        self.f_cost = [math.inf] * self.size
+        self.f_cost = {i: math.inf for i in range(self.size)}
 
         self.end_pos = self.grid.index_to_coord(self.grid.end)
         self.end_node = self.create_node(self.end_pos)
@@ -63,7 +63,8 @@ class AStar:
         self.path = None
 
         self.OPEN_COLOR = (64, 255, 64)
-        self.CLOSED_COLOR = (255, 64, 64)
+        self.CL_C_MIN = (255, 64, 64)
+        self.CL_C_MAX = (255, 255, 64)
 
     def get_current(self, open_nodes):
         return min(open_nodes, key=lambda x: self.f_cost[x.get_index()])
@@ -132,15 +133,19 @@ class AStar:
         self.path = current_node
 
     def calculate_closed_colors(self):
-        min_f_cost = min(self.f_cost)
-        max_f_cost = max(self.f_cost, key=lambda x: x if x < math.inf else -1)
-
+        min_f_cost = min(self.f_cost.values())
+        max_f_cost = max(self.f_cost.values(), key=lambda x: x if x < math.inf else -1)
+        f_cost_diff = max_f_cost - min_f_cost
         for node in self.closed_nodes:
             index = node.get_index()
             f_cost = self.f_cost[index]
-            scale = (f_cost - min_f_cost) / (max_f_cost - min_f_cost)
+            min_scale = (f_cost - min_f_cost) / f_cost_diff
+            max_scale = 1- min_scale
 
-            self.closed_colors[index] = (255 * scale, 64 * scale, 64 * scale)
+            r = self.CL_C_MIN[0] * min_scale + self.CL_C_MAX[0] * max_scale
+            g = self.CL_C_MIN[1] * min_scale + self.CL_C_MAX[1] * max_scale
+            b = self.CL_C_MIN[2] * min_scale + self.CL_C_MAX[2] * max_scale
+            self.closed_colors[index] = (r, g, b)
 
     def draw(self):
         for node in self.open_nodes:
