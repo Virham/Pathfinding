@@ -8,7 +8,7 @@ class Node:
         self.parent = parent
         self.pathfinder = pathfinder
 
-    def calculate_g_cost(self):
+    def direct_g_cost(self):
         cost = 0
         node = self.parent
         while node:
@@ -16,9 +16,12 @@ class Node:
             node = node.parent
         return cost
 
-    def calculate_h_cost(self):
+    def direct_h_cost(self):
         offset = (self.pos - self.pathfinder.end_pos)
         return abs(offset.x) + abs(offset.y)
+
+    def direct_f_cost(self):
+        return self.direct_g_cost() + self.direct_h_cost()
 
     def get_index(self):
         return int(self.pos.x + self.pos.y * self.pathfinder.width)
@@ -46,6 +49,7 @@ class AStar:
         self.height = self.grid.height
         self.size = self.width * self.height
 
+        self.closed_colors = {}
         self.nodes = [None] * self.size
         self.f_cost = [math.inf] * self.size
 
@@ -56,6 +60,10 @@ class AStar:
 
         self.open_nodes = {self.start_node}
         self.closed_nodes = set()
+        self.path = None
+
+        self.OPEN_COLOR = (64, 255, 64)
+        self.CLOSED_COLOR = (255, 64, 64)
 
     def get_current(self, open_nodes):
         return min(open_nodes, key=lambda x: self.f_cost[x.get_index()])
@@ -68,7 +76,7 @@ class AStar:
     def save_node(self, node):
         index = node.get_index()
         self.nodes[index] = node
-        self.f_cost[index] = node.calculate_g_cost() + node.calculate_h_cost()
+        self.f_cost[index] = node.direct_f_cost()
 
     def pos_in_grid(self, pos):
         return 0 <= pos.x < self.width and 0 <= pos.y < self.height
@@ -90,42 +98,83 @@ class AStar:
 
         return neighbors
 
+    def do_iteration(self):
+        current_node = self.get_current(self.open_nodes)
+        current_index = current_node.get_index()
+
+        # Current is now visited, can't be visited again
+        self.open_nodes.remove(current_node)
+        self.closed_nodes.add(current_node)
+
+        for neighbor in self.get_neighbors(current_node):
+            # The neighbor is the end, stop and return path
+            if neighbor == self.end_node:
+                neighbor.parent = current_node
+                self.path = neighbor
+                return
+
+            # if the neighbor either outside grid or already been visited
+            if not neighbor or neighbor in self.closed_nodes:
+                continue
+
+            # check if length of path to neighbor through current is better than current path
+            neighbor_index = neighbor.get_index()
+            t_score = self.f_cost[current_index] + 1
+
+            if t_score < self.f_cost[neighbor_index]:
+                self.f_cost[neighbor_index] = t_score
+                neighbor.parent = current_node
+
+            # if the neighbor has never been visited, add to choice
+            if neighbor not in self.open_nodes:
+                self.open_nodes.add(neighbor)
+
+        self.path = current_node
+
+    def calculate_closed_colors(self):
+        min_f_cost = min(self.f_cost)
+        max_f_cost = max(self.f_cost, key=lambda x: x if x < math.inf else -1)
+
+        for node in self.closed_nodes:
+            index = node.get_index()
+            f_cost = self.f_cost[index]
+            scale = (f_cost - min_f_cost) / (max_f_cost - min_f_cost)
+
+            self.closed_colors[index] = (255 * scale, 64 * scale, 64 * scale)
+
+    def draw(self):
+        for node in self.open_nodes:
+            self.grid.draw_node(node, self.OPEN_COLOR)
+
+        for node in self.closed_nodes:
+            index = node.get_index()
+            self.grid.draw_node(node, self.closed_colors[index])
+
+        self.grid.draw_path(self.path)
+
+    def visualize(self):
+        if self.grid.start is None or self.grid.end is None:
+            return
+
+        while len(self.open_nodes):
+            for event in pygame.event.get():
+                if event == pygame.QUIT:
+                    quit()
+
+            self.do_iteration()
+            self.draw()
+            pygame.display.update()
+
     def solve(self):
         # no defined start or end
         if self.grid.start is None or self.grid.end is None:
             return
 
         while len(self.open_nodes):
-            current_node = self.get_current(self.open_nodes)
-            current_index = current_node.get_index()
-
-            # Current is now visited, can't be visited again
-            self.open_nodes.remove(current_node)
-            self.closed_nodes.add(current_node)
-
-            for neighbor in self.get_neighbors(current_node):
-                # The neighbor is the end, stop and return path
-                if neighbor == self.end_node:
-                    neighbor.parent = current_node
-                    return neighbor, self.open_nodes, self.closed_nodes
-
-                # if the neighbor either outside grid or already been visited
-                if not neighbor or neighbor in self.closed_nodes:
-                    continue
-
-                # check if length of path to neighbor through current is better than current path
-                neighbor_index = neighbor.get_index()
-                t_score = self.f_cost[current_index] + 1
-
-                if t_score < self.f_cost[neighbor_index]:
-                    self.f_cost[neighbor_index] = t_score
-                    neighbor.parent = current_node
-
-                # if the neighbor has never been visited, add to choice
-                if neighbor not in self.open_nodes:
-                    self.open_nodes.add(neighbor)
-
-            # can visualize the changes
+            self.do_iteration()
+            if self.path == self.end_node:
+                self.calculate_closed_colors()
+                return True
 
         # There is no path
         return

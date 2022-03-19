@@ -30,14 +30,12 @@ class Grid:
         self.BACKGROUND_COLOR = (255, 255, 255)
 
         self.HOVER_COLOR = (127, 127, 127)
-        self.ACTIVE_COLOR = (0, 0, 0)
-        self.ACTIVE_HOVER_COLOR = (63, 63, 63)
+        self.ACTIVE_COLOR = (31, 31, 31)
+        self.ACTIVE_HOVER_COLOR = (79, 79, 79)
 
-        self.START_COLOR = (0, 0, 255)
-        self.END_COLOR = (0, 255, 0)
+        self.START_COLOR = (64, 64, 255)
+        self.END_COLOR = (255, 255, 64)
         self.PATH_COLOR = (255, 0, 255)
-        self.OPEN_COLOR = (64, 255, 64)
-        self.CLOSED_COLOR = (255, 64, 64)
 
     """
         HELPER FUNCTIONS
@@ -121,6 +119,8 @@ class Grid:
         if keys[pygame.K_e]:
             self.end, self.start = self.special_positions(self.end, self.start)
 
+        return True
+
     def special_positions(self, special, other):
         pos = self.pos_to_index(pygame.mouse.get_pos())
         self.activeCells[pos] = False
@@ -136,6 +136,8 @@ class Grid:
         if not self.brush_in_grid(pos):
             return
 
+        changed = False
+
         for i in range(self.brushSize):
             for j in range(self.brushSize):
                 current_x = x + j
@@ -143,7 +145,13 @@ class Grid:
                 if not self.in_coord_grid((current_x, current_y)):
                     continue
                 index = current_x + current_y * self.width
+
+                if not changed and self.activeCells[index] != state:
+                    changed = True
+
                 self.activeCells[index] = state
+
+        return changed
 
     """
         DRAW FUNCTIONS
@@ -193,18 +201,11 @@ class Grid:
     def draw_path(self, path):
         if not path:
             return
-        pygame.draw.rect(self.win, self.PATH_COLOR, (self.coord_to_pos(path.pos), pygame.Vector2(self.pixel_size)))
+        self.draw_node(path, self.PATH_COLOR)
         self.draw_path(path.parent)
 
-    def draw_open_nodes(self, open_nodes):
-        for node in open_nodes:
-            pygame.draw.rect(self.win, self.OPEN_COLOR,
-                             (self.coord_to_pos(node.pos), pygame.Vector2(self.pixel_size)))
-
-    def draw_closed_nodes(self, closed_nodes):
-        for node in closed_nodes:
-            pygame.draw.rect(self.win, self.CLOSED_COLOR,
-                             (self.coord_to_pos(node.pos), pygame.Vector2(self.pixel_size)))
+    def draw_node(self, node, color):
+        pygame.draw.rect(self.win, color, (self.coord_to_pos(node.pos), pygame.Vector2(self.pixel_size)))
 
     """
         UPDATE FUNCTIONS
@@ -212,17 +213,18 @@ class Grid:
 
     def event_handler(self, event):
         if event.type == pygame.KEYDOWN:
-            self.key_pressed()
-            return "Changed"
-        if pygame.mouse.get_pressed()[0]:
-            self.activate_cells(True)
-            return "Changed"
-        if pygame.mouse.get_pressed()[2]:
-            self.activate_cells(False)
-            return "Changed"
+            return self.key_pressed()
+
         if event.type == pygame.MOUSEWHEEL:
             self.brushSize = max(min(self.brushSize + event.y, self.maxSize), self.minSize)
-            return
+
+        if pygame.mouse.get_pressed()[0]:
+            return self.activate_cells(True)
+
+        if pygame.mouse.get_pressed()[2]:
+            return self.activate_cells(False)
+
+
 
     def draw_background(self):
         pygame.draw.rect(self.win, self.BACKGROUND_COLOR, self.rect)
