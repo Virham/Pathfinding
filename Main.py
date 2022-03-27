@@ -1,4 +1,6 @@
 import pygame
+
+from GUI import Button
 from Grid import Grid
 from A_Star import AStar
 
@@ -18,14 +20,27 @@ class Main:
         self.algorithm = None
         self.visualizing = False
 
-    def display(self):
-        self.win.fill((225, 225, 225))
+        self.gui = [Button(pos=(875, 32), width=350, height=100,
+                           func=self.pathfinding,
+                           text="Find Path", text_offset=pygame.Vector2(30, 0))]
+
+    def draw_grid(self):
         self.grid.draw_background()
 
         if self.algorithm:
             self.algorithm.draw()
 
         self.grid.display()
+
+    def draw_gui(self):
+        for element in self.gui:
+            element.draw(self.win)
+
+    def display(self):
+        self.win.fill((200, 200, 200))
+        self.draw_grid()
+        self.draw_gui()
+
         pygame.display.update()
 
     def calculate_path(self):
@@ -35,7 +50,12 @@ class Main:
             self.algorithm = algorithm
             return
 
+        self.visualizing = False
         self.algorithm = None
+
+    def visualize_algorithm(self):
+        algorithm = AStar(grid=self.grid)
+        algorithm.visualize()
 
     def grid_changed(self):
         if self.visualizing:
@@ -44,24 +64,39 @@ class Main:
 
         self.algorithm = None
 
+    def pathfinding(self):
+        self.visualizing = not self.visualizing
+        if self.visualizing:
+            self.visualize_algorithm()
+            self.calculate_path()
+            return
+
+        self.algorithm = None
+
+    def event_handler(self, event):
+        if event.type == pygame.QUIT:
+            quit()
+
+        if event.type == pygame.KEYDOWN:
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_ESCAPE]:  # Resets program
+                return True
+
+            if keys[pygame.K_f]:
+                self.pathfinding()
+
+        for element in self.gui:
+            element.event_handler(event)
+
+        changed = self.grid.event_handler(event)
+        if changed:
+            self.grid_changed()
+
     def loop(self):
         while True:
-
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    quit()
-
-                if event.type == pygame.KEYDOWN:
-                    keys = pygame.key.get_pressed()
-                    if keys[pygame.K_ESCAPE]:  # Resets program
-                        return
-                    if keys[pygame.K_f]:
-                        self.visualizing = not self.visualizing
-                        self.grid_changed()
-
-                changed = self.grid.event_handler(event)
-                if changed:
-                    self.grid_changed()
+                if self.event_handler(event):  # if event handler returns back, restart game
+                    return
 
             self.display()
             self.clock.tick(self.FPS)

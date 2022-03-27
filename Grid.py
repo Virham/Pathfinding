@@ -29,13 +29,12 @@ class Grid:
         self.OUTLINE_COLOR = (0, 0, 0)
         self.BACKGROUND_COLOR = (255, 255, 255)
 
-        self.HOVER_COLOR = (127, 127, 127)
+        self.BRUSH_COLOR = (127, 127, 127)
         self.ACTIVE_COLOR = (31, 31, 31)
-        self.ACTIVE_HOVER_COLOR = (79, 79, 79)
 
         self.START_COLOR = (64, 64, 255)
-        self.END_COLOR = (255, 255, 64)
-        self.PATH_COLOR = (255, 0, 255)
+        self.END_COLOR = (255, 64, 255)
+        self.PATH_COLOR = (64, 255, 255)
 
     """
         HELPER FUNCTIONS
@@ -115,11 +114,11 @@ class Grid:
 
         if keys[pygame.K_s]:
             self.start, self.end = self.special_positions(self.start, self.end)
+            return True
 
         if keys[pygame.K_e]:
             self.end, self.start = self.special_positions(self.end, self.start)
-
-        return True
+            return True
 
     def special_positions(self, special, other):
         pos = self.pos_to_index(pygame.mouse.get_pos())
@@ -157,25 +156,28 @@ class Grid:
         DRAW FUNCTIONS
     """
 
-    def draw_cell_hover(self):
-        active = self.cell_hover()
-        if not active:
+    def draw_brush(self):
+        start_pos = self.cell_hover()
+        if not start_pos:
             return
+
+        brush_surf = pygame.Surface(pygame.Vector2(self.brushSize * self.pixel_size))
+        brush_surf.set_alpha(127)
 
         for i in range(self.brushSize):
             for j in range(self.brushSize):
-                start_pos = active + pygame.Vector2(j, i) * self.pixel_size
-                if self.in_grid(start_pos + pygame.Vector2(self.pixel_size / 2)):
-                    pygame.draw.rect(self.win, self.HOVER_COLOR, (start_pos, pygame.Vector2(self.pixel_size)))
+                pos = pygame.Vector2(j, i) * self.pixel_size
+                if self.in_grid(start_pos + pos + pygame.Vector2(self.pixel_size / 2)):
+                    pygame.draw.rect(brush_surf, self.BRUSH_COLOR, (pos, pygame.Vector2(self.pixel_size)))
 
-    def draw_active_cells(self):
+        self.win.blit(brush_surf, start_pos)
+
+    def draw_walls(self, show_active=True):
         for i in range(self.height):
             for j in range(self.width):
                 if self.activeCells[j + i * self.width]:
                     start_pos = self.start_pos + pygame.Vector2(j * self.pixel_size, i * self.pixel_size)
-                    color = self.ACTIVE_HOVER_COLOR if self.cell_in_brush(start_pos) else self.ACTIVE_COLOR
-
-                    pygame.draw.rect(self.win, color, (start_pos, (self.pixel_size, self.pixel_size)))
+                    pygame.draw.rect(self.win, self.ACTIVE_COLOR, (start_pos, (self.pixel_size, self.pixel_size)))
 
     def draw_special(self):
         if self.start is not None:
@@ -184,6 +186,9 @@ class Grid:
         if self.end is not None:
             pygame.draw.rect(self.win, self.END_COLOR,
                              (self.index_to_pos(self.end), pygame.Vector2(self.pixel_size)))
+
+    def draw_background(self):
+        pygame.draw.rect(self.win, self.BACKGROUND_COLOR, self.rect)
 
     def draw_grid(self):
         for i in range(self.width + 1):
@@ -224,13 +229,8 @@ class Grid:
         if pygame.mouse.get_pressed()[2]:
             return self.activate_cells(False)
 
-
-
-    def draw_background(self):
-        pygame.draw.rect(self.win, self.BACKGROUND_COLOR, self.rect)
-
     def display(self):
-        self.draw_cell_hover()
-        self.draw_active_cells()
+        self.draw_walls()
         self.draw_special()
-        self.draw_grid()
+        self.draw_brush()
+        # self.draw_grid()
